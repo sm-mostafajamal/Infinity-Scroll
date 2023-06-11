@@ -5,7 +5,7 @@ const baseURL = "https://contact.mediusware.com/api/contacts/";
 
 export const getAll = (page) => {
   return axios
-    .get(`${baseURL}`, {
+    .get(baseURL, {
       params: {
         page: page,
       },

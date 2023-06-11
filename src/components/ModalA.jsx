@@ -1,15 +1,34 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import Buttons from "./Buttons";
-import { useQuery } from "react-query";
-import { getAll } from "../server/contactServer";
+import useContact from "../customHooks/useContact";
 
 const ModalA = () => {
   const [checked, setChecked] = useState(false);
   const [close, setClose] = useState(false);
-  const page = 2;
-  const { isLoading, data } = useQuery(["contacts", page], () => getAll(page));
   const style = close ? { display: "none" } : { display: "" };
-  console.log(data);
+
+  const { isLoading, allData, setPage } = useContact();
+
+  const observerRef = useRef();
+  const lastElementRef = useCallback(
+    (node) => {
+      if (isLoading) return;
+      if (observerRef.current) observerRef.current.disconnect();
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          // console.log("visible");
+          return setPage((prevPage) => prevPage + 1);
+        }
+      });
+      if (node) observerRef.current.observe(node);
+    },
+    [isLoading]
+  );
+  const handleScroll = () => {};
+
+  // console.log(allData);
+  // console.log(observerRef);
+
   return (
     <div style={style}>
       <Buttons />
@@ -20,32 +39,47 @@ const ModalA = () => {
         onChange={(e) => setChecked(!checked)}
       />
       <span>Only Even</span>
-      {isLoading ? (
-        <span>...Loading</span>
-      ) : checked ? (
-        data.results.map((contact) => {
-          if (contact.id % 2) {
-            return (
-              <div key={contact.id}>
-                <span style={{ paddingRight: "20px" }}>
-                  Country: {contact.country.name}
-                </span>
-                <span>Phone:{contact.phone}</span>
-              </div>
-            );
-          }
-        })
-      ) : (
-        data.results.map((contact) => (
-          <div key={contact.id}>
-            <span style={{ paddingRight: "20px" }}>
-              Country: {contact.country.name}
-            </span>
-            <span>Phone:{contact.phone}</span>
-          </div>
-        ))
-      )}
-
+      <div onScroll={handleScroll}>
+        {isLoading ? (
+          <span>...Loading</span>
+        ) : checked ? (
+          allData.map((contact) => {
+            if (contact.id % 2) {
+              return (
+                <div key={contact.id}>
+                  <span style={{ paddingRight: "20px" }}>
+                    Country: {contact.country.name}
+                  </span>
+                  <span>Phone:{contact.phone}</span>
+                </div>
+              );
+            }
+          })
+        ) : (
+          allData.map((contact, index) => {
+            if (allData.length === index + 1) {
+              return (
+                <div key={contact.id} ref={lastElementRef}>
+                  <span style={{ paddingRight: "20px" }}>
+                    Country: {contact.country.name}
+                  </span>
+                  <span>Phone:{contact.phone}</span>
+                </div>
+              );
+            } else {
+              return (
+                <div key={contact.id}>
+                  <span style={{ paddingRight: "20px" }}>
+                    Country: {contact.country.name}
+                  </span>
+                  <span>Phone:{contact.phone}</span>
+                </div>
+              );
+            }
+          })
+        )}
+      </div>
+      {/* <button onClick={() => setPage(page + 1)}>next</button> */}
       {/* {data.results} */}
     </div>
   );
